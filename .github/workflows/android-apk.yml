@@ -64,9 +64,7 @@ jobs:
           flutter pub get
           # Some resolved Flutter plugins hard-code an older compileSdk (e.g. file_picker).
           # Raise plugin Android compileSdk values to match the required API level.
-          find "$HOME/.pub-cache" -type f \\( -name build.gradle -o -name build.gradle.kts \\) -print0 | while IFS= read -r -d "" gradle_file; do
-            sed -i -E "s/compileSdkVersion[[:space:]]+34/compileSdkVersion 36/g; s/compileSdk[[:space:]]*=[[:space:]]*34/compileSdk = 36/g" "$gradle_file"
-          done
+          find "$HOME/.pub-cache" -type f \( -name build.gradle -o -name build.gradle.kts \) -exec sed -i -E "s/compileSdkVersion[[:space:]]+34/compileSdkVersion 36/g; s/compileSdk[[:space:]]*=[[:space:]]*34/compileSdk = 36/g" {} +
           flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
