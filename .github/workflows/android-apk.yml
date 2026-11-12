@@ -18,21 +18,32 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Extract Flutter source
+      - name: Extract V3 source and locate Flutter app
         run: |
-          unzip -q developer-omor-ai-android-build.zip
-          test -f developer_omor_ai/pubspec.yaml
+          mkdir -p source_v3
+          unzip -q developer-omor-ai-source-v3.zip -d source_v3
+          PUBSPEC="$(find source_v3 -type f -name pubspec.yaml -print -quit)"
+          if [ -z "$PUBSPEC" ]; then
+            echo "ERROR: V3 archive does not contain a Flutter pubspec.yaml"
+            echo "Archive file list:"
+            find source_v3 -maxdepth 4 -type f | head -200
+            exit 1
+          fi
+          APP_DIR="${PUBSPEC%/pubspec.yaml}"
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+          echo "Building Flutter project at: $APP_DIR"
       - name: Install dependencies
-        working-directory: developer_omor_ai
-        run: flutter pub get
+        run: cd "$APP_DIR" && flutter pub get
       - name: Build installable APK
-        working-directory: developer_omor_ai
         run: |
-          flutter create --platforms=android --org com.omor.developer_omor_ai .
+          cd "$APP_DIR"
+          if [ ! -d android ]; then
+            flutter create --platforms=android --org com.omor.developer_omor_ai .
+          fi
           flutter pub get
           flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
-          name: developer-omor-ai-release-apk
-          path: developer_omor_ai/build/app/outputs/flutter-apk/app-release.apk
+          name: developer-omor-ai-v3-release-apk
+          path: ${{ env.APP_DIR }}/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
