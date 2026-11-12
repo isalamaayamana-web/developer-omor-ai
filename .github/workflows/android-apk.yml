@@ -40,7 +40,7 @@ jobs:
           if [ ! -d android ]; then
             flutter create --platforms=android --org com.omor.developer_omor_ai .
           fi
-          python3 "$GITHUB_WORKSPACE/scripts/enable_notifications.py" "$APP_DIR"
+          python3 "$GITHUB_WORKSPACE/scripts/enable_notifications.py" "."
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -print -quit)"
           if [ -z "$SDKMANAGER" ]; then
