@@ -62,6 +62,11 @@ jobs:
           echo "Android compile SDK configuration:"
           grep -n "compileSdk" android/app/build.gradle* || true
           flutter pub get
+          # Some resolved Flutter plugins hard-code an older compileSdk (e.g. file_picker).
+          # Raise plugin Android compileSdk values to match the required API level.
+          find "$HOME/.pub-cache" -type f \\( -name build.gradle -o -name build.gradle.kts \\) -print0 | while IFS= read -r -d "" gradle_file; do
+            sed -i -E "s/compileSdkVersion[[:space:]]+34/compileSdkVersion 36/g; s/compileSdk[[:space:]]*=[[:space:]]*34/compileSdk = 36/g" "$gradle_file"
+          done
           flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
