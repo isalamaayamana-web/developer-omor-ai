@@ -72,7 +72,7 @@ jobs:
               os.path.join(os.environ.get("APP_DIR", "."), ".dart_tool"),
               os.environ.get("RUNNER_TEMP", ""),
           }
-          pattern = re.compile(r"(compileSdk(?:Version)?\\s*(?:=\\s*)?)(34|35)\\b")
+          pattern = re.compile(r"(compileSdk(?:Version)?\s*(?:=\s*)?)(34|35)\b")
           changed = []
           for root in sorted(r for r in roots if r and os.path.isdir(r)):
               for current, dirs, files in os.walk(root):
@@ -84,7 +84,7 @@ jobs:
                       try:
                           with open(path, encoding="utf-8") as f:
                               source = f.read()
-                          updated, count = pattern.subn(r"\\g<1>36", source)
+                          updated, count = pattern.subn(r"\g<1>36", source)
                           if count:
                               with open(path, "w", encoding="utf-8") as f:
                                   f.write(updated)
