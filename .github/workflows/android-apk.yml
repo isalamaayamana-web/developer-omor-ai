@@ -62,9 +62,40 @@ jobs:
           echo "Android compile SDK configuration:"
           grep -n "compileSdk" android/app/build.gradle* || true
           flutter pub get
-          # Some resolved Flutter plugins hard-code an older compileSdk (e.g. file_picker).
-          # Raise plugin Android compileSdk values to match the required API level.
-          find "$HOME/.pub-cache" -type f \( -name build.gradle -o -name build.gradle.kts \) -exec sed -i -E "s/compileSdkVersion[[:space:]]+34/compileSdkVersion 36/g; s/compileSdk[[:space:]]*=[[:space:]]*34/compileSdk = 36/g" {} +
+          # Some Flutter plugins pin compileSdk to 34/35. Patch the actual pub cache
+          # (PUB_CACHE is not guaranteed to be under ~/.pub-cache on GitHub runners).
+          python3 - <<'PY'
+          import os, re
+          roots = {
+              os.environ.get("PUB_CACHE", ""),
+              os.path.expanduser("~/.pub-cache"),
+              os.path.join(os.environ.get("APP_DIR", "."), ".dart_tool"),
+              os.environ.get("RUNNER_TEMP", ""),
+          }
+          pattern = re.compile(r"(compileSdk(?:Version)?\\s*(?:=\\s*)?)(34|35)\\b")
+          changed = []
+          for root in sorted(r for r in roots if r and os.path.isdir(r)):
+              for current, dirs, files in os.walk(root):
+                  dirs[:] = [d for d in dirs if d not in {".git", "build", ".gradle"}]
+                  for name in files:
+                      if name not in ("build.gradle", "build.gradle.kts"):
+                          continue
+                      path = os.path.join(current, name)
+                      try:
+                          with open(path, encoding="utf-8") as f:
+                              source = f.read()
+                          updated, count = pattern.subn(r"\\g<1>36", source)
+                          if count:
+                              with open(path, "w", encoding="utf-8") as f:
+                                  f.write(updated)
+                              changed.append((path, count))
+                      except (OSError, UnicodeError):
+                          pass
+          for path, count in changed:
+              print(f"Updated compileSdk in {path} ({count} occurrence(s))")
+          if not changed:
+              print("No pinned compileSdk 34/35 Gradle declarations found in searched roots.")
+          PY
           flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
