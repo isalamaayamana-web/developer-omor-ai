@@ -20,7 +20,7 @@ jobs:
           cache: true
       - name: Extract Flutter source
         run: |
-          unzip -q developer-omor-ai-source.zip
+          unzip -q developer-omor-ai-android-build.zip
           test -f developer_omor_ai/pubspec.yaml
       - name: Install dependencies
         working-directory: developer_omor_ai
