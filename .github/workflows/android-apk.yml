@@ -34,12 +34,25 @@ jobs:
           echo "Building Flutter project at: $APP_DIR"
       - name: Install dependencies
         run: cd "$APP_DIR" && flutter pub get
-      - name: Build installable APK
+      - name: Prepare Android SDK and build installable APK
         run: |
           cd "$APP_DIR"
           if [ ! -d android ]; then
             flutter create --platforms=android --org com.omor.developer_omor_ai .
           fi
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+            sed -i 's/compileSdk = 34/compileSdk = 36/' android/app/build.gradle.kts
+          elif [ -f android/app/build.gradle ]; then
+            sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/' android/app/build.gradle
+            sed -i 's/compileSdkVersion 34/compileSdkVersion 36/' android/app/build.gradle
+            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle
+            sed -i 's/compileSdk = 34/compileSdk = 36/' android/app/build.gradle
+          fi
+          echo "Android compile SDK configuration:"
+          grep -n "compileSdk" android/app/build.gradle* || true
           flutter pub get
           flutter build apk --release
       - uses: actions/upload-artifact@v4
