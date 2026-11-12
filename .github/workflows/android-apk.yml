@@ -40,54 +40,8 @@ jobs:
           if [ ! -d android ]; then
             flutter create --platforms=android --org com.omor.developer_omor_ai .
           fi
-          # Declare and request Android 13+ notification permission.
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          if not manifest.exists():
-              raise SystemExit("AndroidManifest.xml not found")
-          xml = manifest.read_text()
-          permission = 'android.permission.POST_NOTIFICATIONS'
-          if permission not in xml:
-              tag = re.search(r'<manifest\\b[^>]*>', xml)
-              if not tag:
-                  raise SystemExit("Could not locate manifest tag")
-              xml = xml[:tag.end()] + '\\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' + xml[tag.end():]
-              manifest.write_text(xml)
-          print("POST_NOTIFICATIONS declared in AndroidManifest.xml")
-
-          kotlin_files = list(Path("android/app/src/main").rglob("MainActivity.kt"))
-          java_files = list(Path("android/app/src/main").rglob("MainActivity.java"))
-          if kotlin_files:
-              activity = kotlin_files[0]
-              source = activity.read_text()
-              if "POST_NOTIFICATIONS" not in source:
-                  imports = [
-                      "import android.Manifest",
-                      "import android.content.pm.PackageManager",
-                      "import android.os.Build",
-                      "import android.os.Bundle",
-                  ]
-                  package_line = re.search(r'^package\\s+[^\\n]+', source, re.M)
-                  insertion = package_line.end() if package_line else 0
-                  new_imports = "\\n" + "\\n".join(i for i in imports if i not in source) + "\\n"
-                  source = source[:insertion] + new_imports + source[insertion:]
-                  method = '''
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  if (Build.VERSION.SDK_INT >= 33 &&
-                      checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                      requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
-                  }
-              }
-          '''
-                  if re.search(r'class\\s+MainActivity[^\\n{]*\\{', source):
-                      pos = source.rfind("}")
-                      source = source[:pos] + method + "\\n" + source[pos:]
-                  else:
-                      source = re.sub(r'(class\\s+MainActivity[^\\n]*\\(\\s*\\))\\s*          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          python3 "$GITHUB_WORKSPACE/scripts/enable_notifications.py" "$APP_DIR"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -print -quit)"
           if [ -z "$SDKMANAGER" ]; then
             echo "ERROR: sdkmanager not found under $SDK_ROOT/cmdline-tools"
